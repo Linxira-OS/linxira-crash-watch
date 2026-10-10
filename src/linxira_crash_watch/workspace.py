@@ -23,7 +23,15 @@ core.*
 *.dmp
 *.tar
 *.tar.*
+
+# Built-in agent skills are materialized tooling, not crash evidence.
+.agents/skills/
 """
+
+# The built-in diagnose-crash skill ships inside the package; the workspace
+# manager materializes it under the standard agent path on first creation.
+SKILL_NAME = "diagnose-crash"
+SKILL_SOURCE = Path(__file__).parent / "skills" / SKILL_NAME / "SKILL.md"
 
 INDEX_HEADER = """\
 # Linxira debug workspace
@@ -57,6 +65,7 @@ class Workspace:
             self._write_backlog({"items": []})
         if not (self.path / "mute.json").exists():
             self._write_json(self.path / "mute.json", {"programs": []})
+        self._materialize_skill()
         self._git_init()
         self.write_index()
         return self
@@ -76,6 +85,19 @@ class Workspace:
             )
         except (OSError, subprocess.SubprocessError):
             pass
+
+    def _materialize_skill(self) -> None:
+        """Write the built-in diagnose-crash skill under the standard agent path.
+
+        Zero-install: the skill ships with the package and any agent opening the
+        workspace discovers ``.agents/skills/diagnose-crash/SKILL.md`` directly.
+        Existing content is never overwritten.
+        """
+        target = self.path / ".agents" / "skills" / SKILL_NAME / "SKILL.md"
+        if target.exists():
+            return
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(SKILL_SOURCE.read_text(encoding="utf-8"), encoding="utf-8")
 
     # -- backlog -----------------------------------------------------------
     def _write_json(self, path: Path, payload: dict) -> None:

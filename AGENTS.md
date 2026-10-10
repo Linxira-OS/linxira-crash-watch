@@ -22,6 +22,8 @@
   `events.py`(事件模型 + 事件库)、`triage.py`(S0/S1/S2 分级与分流,纯函数)、
   `workspace.py`(debug 工作区管理器)、`notify.py`(桌面通知 + 按钮)、
   `watcher.py`(`coredumpctl` 采集 + 超时分流)、`lanes.py`(三条通道的 argv 构造)、`cli.py`。
+- `src/linxira_crash_watch/skills/diagnose-crash/SKILL.md` —— 内置诊断技能(随包);
+  `workspace.ensure()` 首次创建时物化到 `<ws>/.agents/skills/`(零安装,agent 标准路径发现)。
 - `data/`:`linxira-crash-watch.service`(用户服务单元)、`org.linxira.CrashWatch.desktop`、`.metainfo.xml`。
 - `document/crash-watch-design.md` —— 定稿设计稿(权威)。
 - `tests/` —— pytest;纯函数策略在无 systemd / 无桌面会话下即可测。
@@ -35,6 +37,8 @@
 - 外部命令一律**固定 argv 允许列表**(`coredumpctl`、`pacman -Qoq`/`-Qi`、`notify-send`、`git init`、
   终端 `konsole`/`cosmic-terminal`/`xterm`),**无 shell**;位置参数经 `_check_arg` 拒绝 `-` 开头的注入。
 - 运行态去重账本(`seen.json`)写 `$XDG_STATE_HOME/linxira-crash-watch/`,**不写进工作区**。
+- 内置技能的物化位置固定为 `<ws>/.agents/skills/diagnose-crash/SKILL.md`(标准 agent 路径);
+  只在首次创建时写入,不覆盖既有内容。
 
 ## 本地校验
 

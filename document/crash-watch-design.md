@@ -197,11 +197,11 @@ tools    = "read,grep,glob,lsp" # 开启后也只读
 
 | 仓 | 改动 |
 |---|---|
-| **`linxira-crash-watch`**(本仓) | CLI + systemd 用户服务 + 通知 + 分级/分流 + 工作区管理器 |
+| **`linxira-crash-watch`**(本仓) | CLI + systemd 用户服务 + 通知 + 分级/分流 + 工作区管理器 + 内置 `diagnose-crash` skill(随包,物化到 `<ws>/.agents/skills/`) |
 | `linxira-os` | `governance/repositories.yaml` 登记归属;本设计稿迁入本仓 `document/` |
 | `packages` | 新增 `linxira-crash-watch` PKGBUILD |
 | `linxira-iso-direct` | 包清单加 `systemd-coredump`;用户加入 `systemd-journal` 组 |
-| `linxira-zeta` | debug 工作区内置 `diagnose-crash` skill(零安装);可选 `plugins/official/crash-diagnosis/` |
+| `linxira-zeta` | 可选 `plugins/official/crash-diagnosis/`(未做;内置 skill 由 crash-watch 物化,不经本仓) |
 
 ## 14. 最小可用验收(MVP)
 

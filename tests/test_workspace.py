@@ -69,3 +69,15 @@ def test_write_index_lists_pending(tmp_path: Path):
     index = ws.write_index().read_text(encoding="utf-8")
     assert "e-0001" in index
     assert "Pending" in index
+
+
+def test_ensure_materializes_builtin_skill(tmp_path: Path):
+    ws = Workspace(tmp_path).ensure()
+    skill = tmp_path / ".agents" / "skills" / "diagnose-crash" / "SKILL.md"
+    assert skill.is_file()
+    assert "name: diagnose-crash" in skill.read_text(encoding="utf-8")
+    assert ".agents/skills/" in (tmp_path / ".gitignore").read_text(encoding="utf-8")
+    # Materialization happens on first creation only; content is not overwritten.
+    skill.write_text("# local edit\n", encoding="utf-8")
+    ws.ensure()
+    assert skill.read_text(encoding="utf-8") == "# local edit\n"
