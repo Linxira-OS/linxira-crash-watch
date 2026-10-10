@@ -1,0 +1,71 @@
+from __future__ import annotations
+
+from datetime import timedelta
+from pathlib import Path
+
+from linxira_crash_watch.events import CrashEvent, iso, utcnow
+from linxira_crash_watch.workspace import DEDUPE_WINDOW, Workspace
+
+
+def make_event(event_id: str, exe: str = "/usr/bin/foo", when=None) -> CrashEvent:
+    return CrashEvent(
+        id=event_id,
+        time=iso(when or utcnow()),
+        exe=exe,
+        pkg="foo",
+        pkg_repo="extra",
+        severity="S2",
+    )
+
+
+def test_ensure_creates_repo_files(tmp_path: Path):
+    ws = Workspace(tmp_path).ensure()
+    assert (tmp_path / ".gitignore").is_file()
+    assert (tmp_path / "backlog.json").is_file()
+    assert (tmp_path / "mute.json").is_file()
+    assert (tmp_path / "INDEX.md").is_file()
+    assert ws.is_initialized()
+
+
+def test_backlog_pin_and_remove(tmp_path: Path):
+    ws = Workspace(tmp_path).ensure()
+    event = make_event("e-2026-10-10-0001")
+    ws.pin_to_backlog(event)
+    assert [item["id"] for item in ws.backlog_items()] == ["e-2026-10-10-0001"]
+    assert ws.backlog_has_exe("/usr/bin/foo")
+    ws.remove_from_backlog("e-2026-10-10-0001")
+    assert ws.backlog_items() == []
+
+
+def test_backlog_window(tmp_path: Path):
+    ws = Workspace(tmp_path).ensure()
+    old = make_event("e-0001", when=utcnow() - timedelta(days=2))
+    ws.pin_to_backlog(old)
+    assert ws.backlog_has_exe("/usr/bin/foo")
+    assert not ws.backlog_has_exe("/usr/bin/foo", within=DEDUPE_WINDOW)
+
+
+def test_mute_roundtrip(tmp_path: Path):
+    ws = Workspace(tmp_path).ensure()
+    assert ws.mute_list() == []
+    ws.add_mute("foo")
+    assert ws.is_muted("/usr/bin/foo")
+    assert ws.mute_list() == ["foo"]
+    ws.remove_mute("foo")
+    assert ws.mute_list() == []
+
+
+def test_repeat_count_includes_current(tmp_path: Path):
+    ws = Workspace(tmp_path).ensure()
+    ws.store.save(make_event("e-0001"))
+    ws.store.save(make_event("e-0002"))
+    assert ws.repeat_count("/usr/bin/foo") == 3  # 2 stored + current
+    assert ws.repeat_count("/usr/bin/other") == 1
+
+
+def test_write_index_lists_pending(tmp_path: Path):
+    ws = Workspace(tmp_path).ensure()
+    ws.store.save(make_event("e-0001"))
+    index = ws.write_index().read_text(encoding="utf-8")
+    assert "e-0001" in index
+    assert "Pending" in index

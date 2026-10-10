@@ -1,0 +1,42 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "linxira-crash-watch"
+version = "0.1.0"
+description = "Crash capture, triage, and user-approved agent wake-up for Linxira OS"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{name = "Linxira OS contributors"}]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Operating System :: POSIX :: Linux",
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://linxira-os.github.io/"
+Repository = "https://github.com/Linxira-OS/linxira-crash-watch"
+Issues = "https://github.com/Linxira-OS/linxira-crash-watch/issues"
+Documentation = "https://linxira-os.github.io/linxira-wiki/"
+
+[project.optional-dependencies]
+test = ["pytest>=8", "build>=1.2"]
+
+[project.scripts]
+linxira-crash = "linxira_crash_watch.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/linxira_crash_watch"]
+
+[tool.hatch.build.targets.wheel.shared-data]
+"data/linxira-crash-watch.service" = "lib/systemd/user/linxira-crash-watch.service"
+"data/org.linxira.CrashWatch.desktop" = "share/applications/org.linxira.CrashWatch.desktop"
+"data/org.linxira.CrashWatch.metainfo.xml" = "share/metainfo/org.linxira.CrashWatch.metainfo.xml"
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["tests"]

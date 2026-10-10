@@ -1,0 +1,23 @@
+[Unit]
+Description=Linxira crash watch (coredump capture and notification)
+Documentation=https://github.com/Linxira-OS/linxira-crash-watch
+After=default.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/linxira-crash daemon --interval 60
+Restart=on-failure
+RestartSec=10
+# Unprivileged, no network, no arbitrary shell. Capture, notification, and
+# timeout triage all run at zero token cost; the agent is never launched here.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=%h/Linxira %h/.local/state/linxira-crash-watch
+RestrictNamespaces=true
+RestrictAddressFamilies=AF_UNIX
+MemoryDenyWriteExecute=true
+
+[Install]
+WantedBy=default.target

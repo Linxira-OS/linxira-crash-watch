@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Linxira Crash Watch
+Comment=Review captured crashes and hand one to the agent
+Exec=/usr/bin/linxira-crash status
+Icon=org.linxira.CrashWatch
+Terminal=true
+Categories=System;Monitor;
+Keywords=crash;coredump;diagnostics;stability;
+StartupNotify=true
