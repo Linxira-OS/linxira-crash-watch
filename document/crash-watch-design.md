@@ -13,7 +13,10 @@
   1. **点击才花 token** —— 不照抄"点击即唤醒并自动动手"的放任模式。
   2. **长时间不处理时按级别自动分流** —— 通知没人管也不丢,按严重性自动 Pin / 忽略。
   3. **Pin 累积 + 批处理** —— 长期积累后一口气排查。
-- **现状缺口**:Linxira ISO 当前**没有任何 `systemd-coredump` 接线**,信号源尚不存在,必须先补。
+- **现状缺口**:Linxira ISO 此前**没有崩溃监视侧接线**——信号源本身已具备(`systemd` 自带
+  `systemd-coredump` 机制: 二进制 `/usr/lib/systemd/systemd-coredump` + `kernel.core_pattern`
+  + sysusers 建的同名用户/组, **无需额外包**);真缺口是"捕获→分级→通知→唤醒"这一侧。
+  2026-10-11 起 ISO/WSL 双清单预装 `linxira-crash-watch`。
 
 ## 2. 设计原则
 
@@ -28,7 +31,8 @@
   `provides=('zetacode')` 与 `install ... /usr/bin/zetacode` 确认。
   仓库开发态 bin 名为 `zeta`(`packages/coding-agent/package.json`),**脚本里一律用 `zetacode`**。
 - **前置条件**:
-  1. `systemd-coredump` 纳入 ISO 包清单并启用(信号源);
+  1. 信号源: `systemd` 自带 `systemd-coredump` 机制即可, **无需任何额外包**
+     (2026-10-11 查证: Arch 官方仓库**不存在**名为 `systemd-coredump` 的包);
   2. 目标用户加入 `systemd-journal` 组,以读 coredump(而非给 root)。
 
 ## 4. 架构
@@ -197,10 +201,11 @@ tools    = "read,grep,glob,lsp" # 开启后也只读
 
 | 仓 | 改动 |
 |---|---|
-| **`linxira-crash-watch`**(本仓) | CLI + systemd 用户服务 + 通知 + 分级/分流 + 工作区管理器 + 内置 `diagnose-crash` skill(随包,物化到 `<ws>/.agents/skills/`) |
+| **`linxira-crash-watch`**(本仓) | CLI + systemd 用户服务 + **`90-linxira-crash-watch.preset`**(首启 `preset-all` 自启) + 通知 + 分级/分流 + 工作区管理器 + 内置 `diagnose-crash` skill(随包,物化到 `<ws>/.agents/skills/`) |
 | `linxira-os` | `governance/repositories.yaml` 登记归属;本设计稿迁入本仓 `document/` |
-| `packages` | 新增 `linxira-crash-watch` PKGBUILD |
-| `linxira-iso-direct` | 包清单加 `systemd-coredump`;用户加入 `systemd-journal` 组 |
+| `packages` | `linxira-crash-watch` PKGBUILD(`depends` **不含** `systemd-coredump`);`upstream-sync.toml` 白名单;发布链的构建/上传清单(**2026-10-11 起暂离链**, 随 11 月发 v0.1.1 恢复——原因见 `HANDOVER.md`) |
+| `linxira-iso-direct` | 包清单预装 `linxira-crash-watch`(live + target) + `--crash-watch-package` 构建接线与落点校验;用户加入 `systemd-journal` 组。**早期稿写作"包清单加 `systemd-coredump`"系误**——Arch 无此包, `systemd` 已自带 |
+| `linxira-wsl` | `wsl-packages.x86_64` 预装 `linxira-crash-watch` |
 | `linxira-zeta` | 可选 `plugins/official/crash-diagnosis/`(未做;内置 skill 由 crash-watch 物化,不经本仓) |
 
 ## 14. 最小可用验收(MVP)

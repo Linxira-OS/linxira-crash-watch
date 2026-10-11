@@ -24,7 +24,9 @@
   `watcher.py`(`coredumpctl` 采集 + 超时分流)、`lanes.py`(三条通道的 argv 构造)、`cli.py`。
 - `src/linxira_crash_watch/skills/diagnose-crash/SKILL.md` —— 内置诊断技能(随包);
   `workspace.ensure()` 首次创建时物化到 `<ws>/.agents/skills/`(零安装,agent 标准路径发现)。
-- `data/`:`linxira-crash-watch.service`(用户服务单元)、`org.linxira.CrashWatch.desktop`、`.metainfo.xml`。
+- `data/`:`linxira-crash-watch.service`(用户服务单元)、`linxira-crash-watch.preset`
+  (安装为 `lib/systemd/user-preset/90-linxira-crash-watch.preset`;首启 `systemctl preset-all`
+  按 preset 自启用户服务,同 org 既有 `linxira-update` 模式)、`org.linxira.CrashWatch.desktop`、`.metainfo.xml`。
 - `document/crash-watch-design.md` —— 定稿设计稿(权威)。
 - `tests/` —— pytest;纯函数策略在无 systemd / 无桌面会话下即可测。
 
