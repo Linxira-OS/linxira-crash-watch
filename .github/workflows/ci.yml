@@ -25,6 +25,10 @@ jobs:
       - run: pytest
       - run: python -m compileall -q src
       - run: python -m build
+      - name: Assert the wheel ships the skill and the service preset
+        run: |
+          python -m zipfile -l dist/*.whl | grep -q 'linxira_crash_watch/skills/diagnose-crash/SKILL.md'
+          python -m zipfile -l dist/*.whl | grep -q 'linxira-crash-watch.preset'
       - run: python -c "import xml.etree.ElementTree as E; E.parse('data/org.linxira.CrashWatch.metainfo.xml')"
       - run: |
           ! grep -R -E -n 'shell=True|os\.system|subprocess\.(getoutput|call)\(' src

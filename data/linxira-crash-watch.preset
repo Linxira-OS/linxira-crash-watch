@@ -1,0 +1,5 @@
+# Linxira Crash Watch user-service preset.
+# Applied by the user manager on first login so crash capture, notifications and
+# zero-token timeout triage run out of the box after installation. The unattended
+# AGENT lane stays off by default and is controlled by the user config file.
+enable linxira-crash-watch.service

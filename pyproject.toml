@@ -34,6 +34,7 @@ packages = ["src/linxira_crash_watch"]
 
 [tool.hatch.build.targets.wheel.shared-data]
 "data/linxira-crash-watch.service" = "lib/systemd/user/linxira-crash-watch.service"
+"data/linxira-crash-watch.preset" = "lib/systemd/user-preset/90-linxira-crash-watch.preset"
 "data/org.linxira.CrashWatch.desktop" = "share/applications/org.linxira.CrashWatch.desktop"
 "data/org.linxira.CrashWatch.metainfo.xml" = "share/metainfo/org.linxira.CrashWatch.metainfo.xml"
 
