@@ -47,3 +47,24 @@ def test_notify_noop_without_daemon(monkeypatch):
     result = notify.notify("t", "b")
     assert result.sent is False
     assert result.action is None
+
+def test_build_argv_has_copy_action():
+    argv = notify.build_argv("title", "body")
+    assert any(a.startswith("--action=copy=") for a in argv)
+
+
+def test_copy_to_clipboard_uses_first_available_tool(monkeypatch):
+    calls = []
+
+    def runner(argv, **kwargs):
+        calls.append((argv, kwargs.get("input")))
+        return type("C", (), {"returncode": 0})()
+
+    monkeypatch.setattr(notify.shutil, "which", lambda name: "/usr/bin/wl-copy" if name == "wl-copy" else None)
+    assert notify.copy_to_clipboard("hello", runner=runner) is True
+    assert calls == [(("wl-copy",), "hello")]
+
+
+def test_copy_to_clipboard_without_backend(monkeypatch):
+    monkeypatch.setattr(notify.shutil, "which", lambda _name: None)
+    assert notify.copy_to_clipboard("hello") is False

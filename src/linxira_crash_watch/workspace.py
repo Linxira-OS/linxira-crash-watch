@@ -33,6 +33,12 @@ core.*
 SKILL_NAME = "diagnose-crash"
 SKILL_SOURCE = Path(__file__).parent / "skills" / SKILL_NAME / "SKILL.md"
 
+# System-wide agent skills installed by linxira-config-hub. Materializing the
+# config skill into the workspace lets zetacode discover both without a second
+# discovery mechanism.
+SYSTEM_SKILLS_DIR = Path("/usr/share/linxira/agent/skills")
+CONFIG_SKILL_NAME = "linxira-config"
+
 INDEX_HEADER = """\
 # Linxira debug workspace
 
@@ -87,17 +93,24 @@ class Workspace:
             pass
 
     def _materialize_skill(self) -> None:
-        """Write the built-in diagnose-crash skill under the standard agent path.
+        """Write built-in skills under the standard agent path.
 
-        Zero-install: the skill ships with the package and any agent opening the
-        workspace discovers ``.agents/skills/diagnose-crash/SKILL.md`` directly.
-        Existing content is never overwritten.
+        Zero-install: crash-watch ships ``diagnose-crash``; ``linxira-config``
+        comes from the system skill directory when installed. Any agent opening
+        the workspace discovers both under ``.agents/skills/``. Existing content
+        is never overwritten.
         """
-        target = self.path / ".agents" / "skills" / SKILL_NAME / "SKILL.md"
+        self._materialize_one(SKILL_NAME, SKILL_SOURCE)
+        config_skill = SYSTEM_SKILLS_DIR / CONFIG_SKILL_NAME / "SKILL.md"
+        if config_skill.is_file():
+            self._materialize_one(CONFIG_SKILL_NAME, config_skill)
+
+    def _materialize_one(self, name: str, source: Path) -> None:
+        target = self.path / ".agents" / "skills" / name / "SKILL.md"
         if target.exists():
             return
         target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(SKILL_SOURCE.read_text(encoding="utf-8"), encoding="utf-8")
+        target.write_text(source.read_text(encoding="utf-8"), encoding="utf-8")
 
     # -- backlog -----------------------------------------------------------
     def _write_json(self, path: Path, payload: dict) -> None:

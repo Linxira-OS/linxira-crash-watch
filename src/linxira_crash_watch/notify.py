@@ -18,13 +18,21 @@ APP_NAME = "Linxira Crash Watch"
 ICON = "dialog-warning"
 
 ACTION_INVESTIGATE = "investigate"
+ACTION_COPY = "copy"
 ACTION_PIN = "pin"
 ACTION_MUTE = "mute"
 
 DEFAULT_ACTIONS = (
     (ACTION_INVESTIGATE, "立即排查"),
+    (ACTION_COPY, "复制提示词"),
     (ACTION_PIN, "Pin"),
     (ACTION_MUTE, "静音"),
+)
+
+CLIPBOARD_COMMANDS = (
+    ("wl-copy",),
+    ("xclip", "-selection", "clipboard"),
+    ("xsel", "--clipboard", "--input"),
 )
 
 
@@ -77,6 +85,20 @@ def notify(
     return NotificationResult(sent=True, action=action)
 
 
+def copy_to_clipboard(text: str, runner=subprocess.run) -> bool:
+    """Copy text to the session clipboard. No shell; first available tool wins."""
+    for command in CLIPBOARD_COMMANDS:
+        if shutil.which(command[0]) is None:
+            continue
+        try:
+            result = runner(command, input=text, text=True, timeout=5, check=False)
+        except (OSError, subprocess.SubprocessError):
+            continue
+        if result.returncode == 0:
+            return True
+    return False
+
+
 def crash_summary(event) -> tuple[str, str]:
     """Build (title, body) for a crash event."""
     name = str(event.exe).rsplit("/", 1)[-1] or event.exe
@@ -86,5 +108,5 @@ def crash_summary(event) -> tuple[str, str]:
         body += f" · 包 {event.pkg}"
     if event.driver_hint:
         body += f" · 驱动 {event.driver_hint}"
-    body += "\n点击可交给 zeta 排查,或 Pin / 静音。"
+    body += "\n点击可交给 zeta 排查、复制提示词,或 Pin / 静音。"
     return title, body

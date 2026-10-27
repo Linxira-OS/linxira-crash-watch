@@ -176,3 +176,48 @@ def test_check_arg_rejects_option_like():
     with pytest.raises(ValueError):
         _check_arg("--evil")
     assert _check_arg("/usr/bin/foo") == "/usr/bin/foo"
+
+def _saved_event(tmp_path, monkeypatch):
+    responses = {
+        "coredumpctl list": (LIST_JSON, 0),
+        "pacman -Qoq": ("foo\n", 0),
+        "pacman -Qi": ("Repository : extra\nGroups : None\n", 0),
+        "coredumpctl info": ("", 0),
+    }
+    watcher = build_watcher(tmp_path, monkeypatch, responses)
+    event = watcher.build_event(watcher.collect()[0])
+    watcher.workspace.store.save(event)
+    return watcher, event
+
+
+def test_notification_pin_updates_backlog(tmp_path, monkeypatch):
+    watcher, event = _saved_event(tmp_path, monkeypatch)
+    watcher._apply_notification_action(event, notify_mod.ACTION_PIN)
+    saved, _ = watcher.workspace.store.find(event.id)
+    assert saved.triage_state == STATE_PINNED
+    assert [item["id"] for item in watcher.workspace.backlog_items()] == [event.id]
+
+
+def test_notification_mute_updates_state(tmp_path, monkeypatch):
+    watcher, event = _saved_event(tmp_path, monkeypatch)
+    watcher._apply_notification_action(event, notify_mod.ACTION_MUTE)
+    saved, _ = watcher.workspace.store.find(event.id)
+    assert saved.triage_state == STATE_IGNORED
+    assert watcher.workspace.is_muted(event.exe)
+
+
+def test_notification_copy_writes_command(tmp_path, monkeypatch):
+    watcher, event = _saved_event(tmp_path, monkeypatch)
+    copied = []
+    monkeypatch.setattr(notify_mod, "copy_to_clipboard", lambda text: copied.append(text) or True)
+    watcher._apply_notification_action(event, notify_mod.ACTION_COPY)
+    assert copied and "zetacode" in copied[0]
+    assert "linxira-config capabilities" in copied[0]
+
+
+def test_notification_investigate_launches_cli(tmp_path, monkeypatch):
+    watcher, event = _saved_event(tmp_path, monkeypatch)
+    launched = []
+    monkeypatch.setattr(watcher, "_launch_investigate", lambda ev: launched.append(ev.id))
+    watcher._apply_notification_action(event, notify_mod.ACTION_INVESTIGATE)
+    assert launched == [event.id]

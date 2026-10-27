@@ -15,14 +15,11 @@ from .about import CLI_NAME, version
 from .config import Config, load_config
 from .events import STATE_IGNORED, STATE_INVESTIGATED, STATE_PENDING, STATE_PINNED, iso, utcnow
 from .lanes import LANE_INTERACTIVE, plan_lane
+from .prompts import PROMPT
 from .triage import REASON_USER_PIN
 from .watcher import Watcher
 from .workspace import Workspace
 
-PROMPT = (
-    "排查这批崩溃:先建立事实(backtrace、复现条件、是否驱动相关),"
-    "再判断是否值得上报上游;只出结论,不改系统。"
-)
 
 
 def _workspace(config: Config) -> Workspace:

@@ -12,14 +12,18 @@ from __future__ import annotations
 
 import json
 import re
+import shutil
 import subprocess
+import sys
 import time as _time
 from dataclasses import dataclass
 from datetime import timedelta
 from pathlib import Path
 
 from . import notify as notify_mod
+from . import prompts
 from . import triage
+from .about import CLI_NAME
 from .config import Config, state_dir
 from .events import (
     STATE_IGNORED,
@@ -264,12 +268,59 @@ class Watcher:
             self.workspace.store.save(event)
             if event.triage_state == STATE_PENDING:
                 title, body = notify_mod.crash_summary(event)
-                notify_mod.notify(title, body)
+                result = notify_mod.notify(title, body)
+                self._apply_notification_action(event, result.action)
             created.append(event)
         self._save_seen(seen)
         if created:
             self.workspace.write_index()
         return created
+
+    def _apply_notification_action(self, event: CrashEvent, action: str | None) -> None:
+        """Apply the action the user picked on the crash notification.
+
+        All effects stay local and explicit: pin/mute update the workspace,
+        copy writes the ready-to-paste zetacode command to the clipboard, and
+        investigate launches the same CLI path the user would run by hand.
+        """
+        if not action:
+            return
+        now = utcnow()
+        if action == notify_mod.ACTION_PIN:
+            updated = self.workspace.store.update_triage(
+                event.id, STATE_PINNED, triage.REASON_USER_PIN, iso(now)
+            )
+            self.workspace.pin_to_backlog(updated)
+        elif action == notify_mod.ACTION_MUTE:
+            self.workspace.add_mute(event.exe)
+            self.workspace.store.update_triage(
+                event.id, STATE_IGNORED, triage.REASON_MUTE, iso(now)
+            )
+        elif action == notify_mod.ACTION_COPY:
+            found = self.workspace.store.find(event.id)
+            if found:
+                notify_mod.copy_to_clipboard(
+                    prompts.command_text(self.workspace.path, found[1])
+                )
+        elif action == notify_mod.ACTION_INVESTIGATE:
+            self._launch_investigate(event)
+        if action in (
+            notify_mod.ACTION_PIN,
+            notify_mod.ACTION_MUTE,
+            notify_mod.ACTION_INVESTIGATE,
+        ):
+            self.workspace.write_index()
+
+    def _launch_investigate(self, event: CrashEvent) -> None:
+        executable = shutil.which(CLI_NAME)
+        if executable:
+            argv = [executable, "investigate", event.id]
+        else:
+            argv = [sys.executable, "-m", "linxira_crash_watch.cli", "investigate", event.id]
+        try:
+            subprocess.Popen(argv, start_new_session=True)
+        except (OSError, subprocess.SubprocessError):
+            return
 
     def sweep_timeouts(self, now=None) -> list[CrashEvent]:
         """Auto-triage pending events past the timeout. Zero token."""
