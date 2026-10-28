@@ -24,7 +24,7 @@ core.*
 *.tar
 *.tar.*
 
-# Built-in agent skills are materialized tooling, not crash evidence.
+# The built-in crash-diagnosis skill is materialized tooling, not crash evidence.
 .agents/skills/
 """
 
@@ -32,12 +32,6 @@ core.*
 # manager materializes it under the standard agent path on first creation.
 SKILL_NAME = "diagnose-crash"
 SKILL_SOURCE = Path(__file__).parent / "skills" / SKILL_NAME / "SKILL.md"
-
-# System-wide agent skills installed by linxira-config-hub. Materializing the
-# config skill into the workspace lets zetacode discover both without a second
-# discovery mechanism.
-SYSTEM_SKILLS_DIR = Path("/usr/share/linxira/agent/skills")
-CONFIG_SKILL_NAME = "linxira-config"
 
 INDEX_HEADER = """\
 # Linxira debug workspace
@@ -93,17 +87,15 @@ class Workspace:
             pass
 
     def _materialize_skill(self) -> None:
-        """Write built-in skills under the standard agent path.
+        """Write the built-in crash-diagnosis skill under the standard agent path.
 
-        Zero-install: crash-watch ships ``diagnose-crash``; ``linxira-config``
-        comes from the system skill directory when installed. Any agent opening
-        the workspace discovers both under ``.agents/skills/``. Existing content
-        is never overwritten.
+        Zero-install: crash-watch ships ``diagnose-crash``, so any agent opening
+        the workspace discovers it under ``.agents/skills/``. System-wide skills
+        (e.g. ``linxira-config``) stay in ``/usr/share/linxira/agent/skills`` and
+        are not copied into the crash workspace. Existing content is never
+        overwritten.
         """
         self._materialize_one(SKILL_NAME, SKILL_SOURCE)
-        config_skill = SYSTEM_SKILLS_DIR / CONFIG_SKILL_NAME / "SKILL.md"
-        if config_skill.is_file():
-            self._materialize_one(CONFIG_SKILL_NAME, config_skill)
 
     def _materialize_one(self, name: str, source: Path) -> None:
         target = self.path / ".agents" / "skills" / name / "SKILL.md"

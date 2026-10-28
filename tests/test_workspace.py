@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import timedelta
 from pathlib import Path
 
+from linxira_crash_watch import workspace as workspace_mod
 from linxira_crash_watch.events import CrashEvent, iso, utcnow
 from linxira_crash_watch.workspace import DEDUPE_WINDOW, Workspace
 
@@ -81,3 +82,25 @@ def test_ensure_materializes_builtin_skill(tmp_path: Path):
     skill.write_text("# local edit\n", encoding="utf-8")
     ws.ensure()
     assert skill.read_text(encoding="utf-8") == "# local edit\n"
+
+def test_workspace_contains_only_crash_skills(tmp_path: Path, monkeypatch):
+    """System skills stay system-wide; the crash workspace copies none of them."""
+    assert not hasattr(workspace_mod, "SYSTEM_SKILLS_DIR")
+    assert not hasattr(workspace_mod, "CONFIG_SKILL_NAME")
+
+    # Simulate an installed system skill dir; nothing should be picked from it.
+    fake_system = tmp_path / "system-skills"
+    (fake_system / "linxira-config").mkdir(parents=True)
+    (fake_system / "linxira-config" / "SKILL.md").write_text(
+        "name: linxira-config\n", encoding="utf-8"
+    )
+    monkeypatch.setattr(workspace_mod, "SYSTEM_SKILLS_DIR", fake_system, raising=False)
+    monkeypatch.setattr(workspace_mod, "CONFIG_SKILL_NAME", "linxira-config", raising=False)
+
+    ws_root = tmp_path / "ws"
+    Workspace(ws_root).ensure()
+
+    skills = ws_root / ".agents" / "skills"
+    assert (skills / "diagnose-crash" / "SKILL.md").is_file()
+    assert not (skills / "linxira-config").exists()
+    assert sorted(p.name for p in skills.iterdir()) == ["diagnose-crash"]
